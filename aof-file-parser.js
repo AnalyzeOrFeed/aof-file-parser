@@ -2,18 +2,17 @@
 
 let fs = require('fs');
 
-let save = (game, filename, cb) => {
-
+export save = (game, filename, cb) => {
   // Validate that all the necessary parameters are present
   let error = '';
-  if (!game.regionId)             error = 'Error: regionId missing';
-  if (!game.gameId)               error = 'Error: gameId missing';
-  if (!game.riotVersion)          error = 'Error: riotVersion missing';
-  if (!game.key)                  error = 'Error: encryption key missing';
-  if (!game.endStartupChunkId)    error = 'Error: endStartupChunkId missing';
-  if (!game.startGameChunkId)     error = 'Error: startGameChunkId missing';
+  if (!game.regionId)             error = 'regionId missing';
+  if (!game.gameId)               error = 'gameId missing';
+  if (!game.riotVersion)          error = 'riotVersion missing';
+  if (!game.key)                  error = 'encryption key missing';
+  if (!game.endStartupChunkId)    error = 'endStartupChunkId missing';
+  if (!game.startGameChunkId)     error = 'startGameChunkId missing';
   if (error) {
-      cb({success: false, error: error, warnings: []});
+      cb({ success: false, error: new Error(error), warnings: [] });
       return;
   }
 
@@ -23,12 +22,16 @@ let save = (game, filename, cb) => {
   if (!game.players) game.players = [];
 
   // Check keyframes
-  if (game.keyframes && game.keyframes.length === 0) warnings.push('No keyframes');
-  if (!game.keyframes) game.keyframes = [];
+  if (!game.keyframes || !game.keyframes.length) {
+    cb({ success: false, error: new Error('No keyframes'), warnings: [] });
+    return;
+  }
 
   // Check chunks
-  if (game.chunks && game.chunks.length === 0) warnings.push('No chunks');
-  if (!game.chunks) game.chunks = [];
+  if (!game.chunks || !game.chunks.length) {
+    cb({ success: false, error: new Error('No chunks'), warnings: [] });
+    return;
+  }
 
   // Start counting keyframes/chunks
   let dataLength = 0; // Used to calculate the length of the buffer
@@ -133,14 +136,14 @@ let save = (game, filename, cb) => {
   let file = filename + '.aof';
   fs.writeFile(file, buff, (err) => {
       if(err) {
-          cb({success: false, error: err, warnings: warnings});
+          cb({ success: false, error: err, warnings: warnings });
+          return;
       }
-      cb({success: true, error: '', warnings: warnings});
+      cb({ success: true, error: null, warnings: warnings });
   });
 };
 
-let load = (file, cb) => {
-
+export load = (file, cb) => {
   let replayMetadata = {};
   let replayData = {};
 
@@ -148,7 +151,7 @@ let load = (file, cb) => {
   try {
     buff = fs.readFileSync(file);
   } catch (e) {
-    cb({success: false, error: e}); // Will abort if there is any error reading the file.
+    cb({ success: false, error: e }); // Will abort if there is any error reading the file.
     return;
   }
 
@@ -157,10 +160,10 @@ let load = (file, cb) => {
   // Read file version
   replayMetadata.version = buff.readUInt8(c);                 c += 1;
   if (replayMetadata.version < 8) {
-      cb({success: false, error: 'The file is using an old data format'}); // error
+      cb({ success: false, error: new Error('The file is using an old data format') });
       return;
   } else if (replayMetadata.version == 9) {
-      cb({success: false, error: 'This file is using a corrupted data format. Please report this to an administrator of aof.gg'}); // error
+      cb({ success: false, error: new Error('This file is using a corrupted data format. Please report this to an administrator of aof.gg') });
       return;
   }
 
@@ -231,6 +234,12 @@ let load = (file, cb) => {
       replayData.keyframes[keyframe.id] = keyframe;
   }
 
+  // We need at least one keyframe
+  if (replayData.keyframes.length === 0) {
+    cb({ success: false, error: new Error('No keyframes') });
+    return;
+  }
+
   // Read the chunks
   replayData.chunks = [];
   if (replayMetadata.version < 11) {
@@ -258,15 +267,9 @@ let load = (file, cb) => {
   if (replayData.chunks.length > 0) {
     replayMetadata.endGameChunkId = replayData.chunks[replayData.chunks.length - 1].id
   } else {
-    cb({success: false, error: 'No chunks'});
+    cb({ success: false, error: new Error('No chunks') });
     return;
   }
 
-  cb({success: true, error: ''}, replayMetadata, replayData);
-
-};
-
-module.exports = {
-  save: save,
-  load: load
+  cb({ success: true, error: null }, replayMetadata, replayData);
 };
