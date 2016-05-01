@@ -1,0 +1,33 @@
+{
+  "name": "aof-file-parser",
+  "version": "0.0.1",
+  "description": "A module to read and write .aof files. The aof file format is used by the website aof.gg (AnalyzeOrFeed) to store League of Legends replays and some additional metadata.",
+  "main": "aof-file-parser.js",
+  "keywords": [
+    "aof",
+    "aof.gg",
+    "AnalyzeOrFeed",
+    "Analyze Or Feed",
+    "LeagueOfLegends",
+    "League Of Legends",
+    "League Of Legends Replay",
+    "LoL",
+    "Replay"
+  ],
+  "repository" :
+  {
+    "type" : "git",
+    "url" : "https://github.com/AnalyzeOrFeed/aof-file-parser.git"
+  },
+  "contributors": [
+    {
+      "name": "Andreas Gassmann",
+      "email": "andy@aof.gg"
+    },
+    {
+      "name": "Marco Crespi",
+      "email": "marco@aof.gg"
+    }
+  ],
+  "license": "MIT"
+}
