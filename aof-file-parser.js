@@ -3,18 +3,17 @@
 let fs = require('fs');
 
 let save = (game, filename, cb) => {
-
   // Validate that all the necessary parameters are present
   let error = '';
-  if (!game.regionId)             error = 'Error: regionId missing';
-  if (!game.gameId)               error = 'Error: gameId missing';
-  if (!game.riotVersion)          error = 'Error: riotVersion missing';
-  if (!game.key)                  error = 'Error: encryption key missing';
-  if (!game.endStartupChunkId)    error = 'Error: endStartupChunkId missing';
-  if (!game.startGameChunkId)     error = 'Error: startGameChunkId missing';
+  if (!game.regionId)             error = 'regionId missing';
+  if (!game.gameId)               error = 'gameId missing';
+  if (!game.riotVersion)          error = 'riotVersion missing';
+  if (!game.key)                  error = 'encryption key missing';
+  if (!game.endStartupChunkId)    error = 'endStartupChunkId missing';
+  if (!game.startGameChunkId)     error = 'startGameChunkId missing';
   if (error) {
-      cb({success: false, error: error, warnings: []});
-      return;
+    cb({ success: false, error: new Error(error), warnings: [] });
+    return;
   }
 
   let warnings = [];
@@ -23,12 +22,16 @@ let save = (game, filename, cb) => {
   if (!game.players) game.players = [];
 
   // Check keyframes
-  if (game.keyframes && game.keyframes.length === 0) warnings.push('No keyframes');
-  if (!game.keyframes) game.keyframes = [];
+  if (!game.keyframes || !game.keyframes.length) {
+    cb({ success: false, error: new Error('No keyframes'), warnings: [] });
+    return;
+  }
 
   // Check chunks
-  if (game.chunks && game.chunks.length === 0) warnings.push('No chunks');
-  if (!game.chunks) game.chunks = [];
+  if (!game.chunks || !game.chunks.length) {
+    cb({ success: false, error: new Error('No chunks'), warnings: [] });
+    return;
+  }
 
   // Start counting keyframes/chunks
   let dataLength = 0; // Used to calculate the length of the buffer
@@ -105,8 +108,7 @@ let save = (game, filename, cb) => {
   // Keyframes
   buff.writeUInt16BE(totalKeyframes, c);                  c += 2;
   game.keyframes.forEach(function(keyframe, index) {
-    if (!keyframe)
-      return;
+    if (!keyframe) return;
 
     buff.writeUInt16BE(keyframe.id, c);                   c += 2;
     buff.writeInt32BE(keyframe.data.length, c);           c += 4;
@@ -119,8 +121,7 @@ let save = (game, filename, cb) => {
   // Chunks
   buff.writeUInt16BE(totalChunks, c);                     c += 2;
   game.chunks.forEach(function(chunk, index) {
-    if (!chunk)
-      return;
+    if (!chunk) return;
 
     buff.writeUInt16BE(chunk.id, c);                      c += 2;
     buff.writeInt32BE(chunk.data.length, c);              c += 4; // length of chunk
@@ -132,15 +133,15 @@ let save = (game, filename, cb) => {
 
   let file = filename + '.aof';
   fs.writeFile(file, buff, (err) => {
-      if(err) {
-          cb({success: false, error: err, warnings: warnings});
-      }
-      cb({success: true, error: '', warnings: warnings});
+    if(err) {
+        cb({ success: false, error: err, warnings: warnings });
+        return;
+    }
+    cb({ success: true, error: null, warnings: warnings });
   });
 };
 
 let load = (file, cb) => {
-
   let replayMetadata = {};
   let replayData = {};
 
@@ -148,7 +149,7 @@ let load = (file, cb) => {
   try {
     buff = fs.readFileSync(file);
   } catch (e) {
-    cb({success: false, error: e}); // Will abort if there is any error reading the file.
+    cb({ success: false, error: e }); // Will abort if there is any error reading the file.
     return;
   }
 
@@ -157,11 +158,11 @@ let load = (file, cb) => {
   // Read file version
   replayMetadata.version = buff.readUInt8(c);                 c += 1;
   if (replayMetadata.version < 8) {
-      cb({success: false, error: 'The file is using an old data format'}); // error
-      return;
+    cb({ success: false, error: new Error('The file is using an old data format') });
+    return;
   } else if (replayMetadata.version == 9) {
-      cb({success: false, error: 'This file is using a corrupted data format. Please report this to an administrator of aof.gg'}); // error
-      return;
+    cb({ success: false, error: new Error('This file is using a corrupted data format. Please report this to an administrator of aof.gg') });
+    return;
   }
 
   // Read the region id
@@ -192,78 +193,83 @@ let load = (file, cb) => {
   replayMetadata.players = [];
   let num = buff.readUInt8(c);                                c += 1;
   for (let i = 0; i < num; i++) {
-      let p = {};
+    let p = {};
 
-      p.id = buff.readInt32BE(c);                             c += 4;
-      len = buff.readUInt8(c);                                c += 1;
-      p.summonerName = buff.toString('utf8', c, c + len);     c += len;
+    p.id = buff.readInt32BE(c);                             c += 4;
+    len = buff.readUInt8(c);                                c += 1;
+    p.summonerName = buff.toString('utf8', c, c + len);     c += len;
 
-      p.teamNr = buff.readUInt8(c);                           c += 1;
-      p.leagueId = buff.readUInt8(c);                         c += 1;
-      p.leagueRank = buff.readUInt8(c);                       c += 1;
-      p.championId = buff.readInt32BE(c);                     c += 4;
-      p.dId = buff.readInt32BE(c);                            c += 4;
-      p.fId = buff.readInt32BE(c);                            c += 4;
+    p.teamNr = buff.readUInt8(c);                           c += 1;
+    p.leagueId = buff.readUInt8(c);                         c += 1;
+    p.leagueRank = buff.readUInt8(c);                       c += 1;
+    p.championId = buff.readInt32BE(c);                     c += 4;
+    p.dId = buff.readInt32BE(c);                            c += 4;
+    p.fId = buff.readInt32BE(c);                            c += 4;
 
-      replayMetadata.players.push(p);
+    replayMetadata.players.push(p);
   }
 
   // Read the keyframes
   replayData.keyframes = [];
   if (replayMetadata.version < 11) {
-      num = buff.readUInt8(c);                                c += 1;
+    num = buff.readUInt8(c);                                c += 1;
   } else {
-      num = buff.readUInt16BE(c);                             c += 2;
+    num = buff.readUInt16BE(c);                             c += 2;
   }
   for (let i = 0; i < num; i++) {
-      let keyframe = {};
-      if (replayMetadata.version < 11) {
-          keyframe.id = buff.readUInt8(c);                    c += 1;
-      } else if (replayMetadata.version == 11) {
-          keyframe.id = i + 1;                                c += 1;
-      } else {
-          keyframe.id = buff.readUInt16BE(c);                 c += 2;
-      }
-      len = buff.readInt32BE(c);                              c += 4;
-      keyframe.data = new Buffer(len);
-      buff.copy(keyframe.data, 0, c, c + len);                c += len;
+    let keyframe = {};
+    if (replayMetadata.version < 11) {
+        keyframe.id = buff.readUInt8(c);                    c += 1;
+    } else if (replayMetadata.version == 11) {
+        keyframe.id = i + 1;                                c += 1;
+    } else {
+        keyframe.id = buff.readUInt16BE(c);                 c += 2;
+    }
+    len = buff.readInt32BE(c);                              c += 4;
+    keyframe.data = new Buffer(len);
+    buff.copy(keyframe.data, 0, c, c + len);                c += len;
 
-      replayData.keyframes[keyframe.id] = keyframe;
+    replayData.keyframes[keyframe.id] = keyframe;
+  }
+
+  // We need at least one keyframe
+  if (replayData.keyframes.length === 0) {
+    cb({ success: false, error: new Error('No keyframes') });
+    return;
   }
 
   // Read the chunks
   replayData.chunks = [];
   if (replayMetadata.version < 11) {
-      num = buff.readUInt8(c);                                c += 1;
+    num = buff.readUInt8(c);                                c += 1;
   } else {
-      num = buff.readUInt16BE(c);                             c += 2;
+    num = buff.readUInt16BE(c);                             c += 2;
   }
   for (let i = 0; i < num; i++) {
-      let chunk = {};
-      if (replayMetadata.version < 11) {
-          chunk.id = buff.readUInt8(c);                       c += 1;
-      } else if (replayMetadata.version == 11) {
-          chunk.id = i + 1;                                   c += 1;
-      } else {
-          chunk.id = buff.readUInt16BE(c);                    c += 2;
-      }
-      len = buff.readInt32BE(c);                              c += 4;
-      chunk.data = new Buffer(len);
-      buff.copy(chunk.data, 0, c, c + len);                   c += len;
+    let chunk = {};
+    if (replayMetadata.version < 11) {
+        chunk.id = buff.readUInt8(c);                       c += 1;
+    } else if (replayMetadata.version == 11) {
+        chunk.id = i + 1;                                   c += 1;
+    } else {
+        chunk.id = buff.readUInt16BE(c);                    c += 2;
+    }
+    len = buff.readInt32BE(c);                              c += 4;
+    chunk.data = new Buffer(len);
+    buff.copy(chunk.data, 0, c, c + len);                   c += len;
 
-      replayData.chunks[chunk.id] = chunk;
+    replayData.chunks[chunk.id] = chunk;
   }
 
   // Calculate the last chunk id
   if (replayData.chunks.length > 0) {
     replayMetadata.endGameChunkId = replayData.chunks[replayData.chunks.length - 1].id
   } else {
-    cb({success: false, error: 'No chunks'});
+    cb({ success: false, error: new Error('No chunks') });
     return;
   }
 
-  cb({success: true, error: ''}, replayMetadata, replayData);
-
+  cb({ success: true, error: null }, replayMetadata, replayData);
 };
 
 module.exports = {
