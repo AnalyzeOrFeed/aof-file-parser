@@ -2,7 +2,7 @@
 
 let fs = require('fs');
 
-export save = (game, filename, cb) => {
+let save = (game, filename, cb) => {
   // Validate that all the necessary parameters are present
   let error = '';
   if (!game.regionId)             error = 'regionId missing';
@@ -12,8 +12,8 @@ export save = (game, filename, cb) => {
   if (!game.endStartupChunkId)    error = 'endStartupChunkId missing';
   if (!game.startGameChunkId)     error = 'startGameChunkId missing';
   if (error) {
-      cb({ success: false, error: new Error(error), warnings: [] });
-      return;
+    cb({ success: false, error: new Error(error), warnings: [] });
+    return;
   }
 
   let warnings = [];
@@ -108,8 +108,7 @@ export save = (game, filename, cb) => {
   // Keyframes
   buff.writeUInt16BE(totalKeyframes, c);                  c += 2;
   game.keyframes.forEach(function(keyframe, index) {
-    if (!keyframe)
-      return;
+    if (!keyframe) return;
 
     buff.writeUInt16BE(keyframe.id, c);                   c += 2;
     buff.writeInt32BE(keyframe.data.length, c);           c += 4;
@@ -122,8 +121,7 @@ export save = (game, filename, cb) => {
   // Chunks
   buff.writeUInt16BE(totalChunks, c);                     c += 2;
   game.chunks.forEach(function(chunk, index) {
-    if (!chunk)
-      return;
+    if (!chunk) return;
 
     buff.writeUInt16BE(chunk.id, c);                      c += 2;
     buff.writeInt32BE(chunk.data.length, c);              c += 4; // length of chunk
@@ -135,15 +133,15 @@ export save = (game, filename, cb) => {
 
   let file = filename + '.aof';
   fs.writeFile(file, buff, (err) => {
-      if(err) {
-          cb({ success: false, error: err, warnings: warnings });
-          return;
-      }
-      cb({ success: true, error: null, warnings: warnings });
+    if(err) {
+        cb({ success: false, error: err, warnings: warnings });
+        return;
+    }
+    cb({ success: true, error: null, warnings: warnings });
   });
 };
 
-export load = (file, cb) => {
+let load = (file, cb) => {
   let replayMetadata = {};
   let replayData = {};
 
@@ -160,11 +158,11 @@ export load = (file, cb) => {
   // Read file version
   replayMetadata.version = buff.readUInt8(c);                 c += 1;
   if (replayMetadata.version < 8) {
-      cb({ success: false, error: new Error('The file is using an old data format') });
-      return;
+    cb({ success: false, error: new Error('The file is using an old data format') });
+    return;
   } else if (replayMetadata.version == 9) {
-      cb({ success: false, error: new Error('This file is using a corrupted data format. Please report this to an administrator of aof.gg') });
-      return;
+    cb({ success: false, error: new Error('This file is using a corrupted data format. Please report this to an administrator of aof.gg') });
+    return;
   }
 
   // Read the region id
@@ -195,43 +193,43 @@ export load = (file, cb) => {
   replayMetadata.players = [];
   let num = buff.readUInt8(c);                                c += 1;
   for (let i = 0; i < num; i++) {
-      let p = {};
+    let p = {};
 
-      p.id = buff.readInt32BE(c);                             c += 4;
-      len = buff.readUInt8(c);                                c += 1;
-      p.summonerName = buff.toString('utf8', c, c + len);     c += len;
+    p.id = buff.readInt32BE(c);                             c += 4;
+    len = buff.readUInt8(c);                                c += 1;
+    p.summonerName = buff.toString('utf8', c, c + len);     c += len;
 
-      p.teamNr = buff.readUInt8(c);                           c += 1;
-      p.leagueId = buff.readUInt8(c);                         c += 1;
-      p.leagueRank = buff.readUInt8(c);                       c += 1;
-      p.championId = buff.readInt32BE(c);                     c += 4;
-      p.dId = buff.readInt32BE(c);                            c += 4;
-      p.fId = buff.readInt32BE(c);                            c += 4;
+    p.teamNr = buff.readUInt8(c);                           c += 1;
+    p.leagueId = buff.readUInt8(c);                         c += 1;
+    p.leagueRank = buff.readUInt8(c);                       c += 1;
+    p.championId = buff.readInt32BE(c);                     c += 4;
+    p.dId = buff.readInt32BE(c);                            c += 4;
+    p.fId = buff.readInt32BE(c);                            c += 4;
 
-      replayMetadata.players.push(p);
+    replayMetadata.players.push(p);
   }
 
   // Read the keyframes
   replayData.keyframes = [];
   if (replayMetadata.version < 11) {
-      num = buff.readUInt8(c);                                c += 1;
+    num = buff.readUInt8(c);                                c += 1;
   } else {
-      num = buff.readUInt16BE(c);                             c += 2;
+    num = buff.readUInt16BE(c);                             c += 2;
   }
   for (let i = 0; i < num; i++) {
-      let keyframe = {};
-      if (replayMetadata.version < 11) {
-          keyframe.id = buff.readUInt8(c);                    c += 1;
-      } else if (replayMetadata.version == 11) {
-          keyframe.id = i + 1;                                c += 1;
-      } else {
-          keyframe.id = buff.readUInt16BE(c);                 c += 2;
-      }
-      len = buff.readInt32BE(c);                              c += 4;
-      keyframe.data = new Buffer(len);
-      buff.copy(keyframe.data, 0, c, c + len);                c += len;
+    let keyframe = {};
+    if (replayMetadata.version < 11) {
+        keyframe.id = buff.readUInt8(c);                    c += 1;
+    } else if (replayMetadata.version == 11) {
+        keyframe.id = i + 1;                                c += 1;
+    } else {
+        keyframe.id = buff.readUInt16BE(c);                 c += 2;
+    }
+    len = buff.readInt32BE(c);                              c += 4;
+    keyframe.data = new Buffer(len);
+    buff.copy(keyframe.data, 0, c, c + len);                c += len;
 
-      replayData.keyframes[keyframe.id] = keyframe;
+    replayData.keyframes[keyframe.id] = keyframe;
   }
 
   // We need at least one keyframe
@@ -243,24 +241,24 @@ export load = (file, cb) => {
   // Read the chunks
   replayData.chunks = [];
   if (replayMetadata.version < 11) {
-      num = buff.readUInt8(c);                                c += 1;
+    num = buff.readUInt8(c);                                c += 1;
   } else {
-      num = buff.readUInt16BE(c);                             c += 2;
+    num = buff.readUInt16BE(c);                             c += 2;
   }
   for (let i = 0; i < num; i++) {
-      let chunk = {};
-      if (replayMetadata.version < 11) {
-          chunk.id = buff.readUInt8(c);                       c += 1;
-      } else if (replayMetadata.version == 11) {
-          chunk.id = i + 1;                                   c += 1;
-      } else {
-          chunk.id = buff.readUInt16BE(c);                    c += 2;
-      }
-      len = buff.readInt32BE(c);                              c += 4;
-      chunk.data = new Buffer(len);
-      buff.copy(chunk.data, 0, c, c + len);                   c += len;
+    let chunk = {};
+    if (replayMetadata.version < 11) {
+        chunk.id = buff.readUInt8(c);                       c += 1;
+    } else if (replayMetadata.version == 11) {
+        chunk.id = i + 1;                                   c += 1;
+    } else {
+        chunk.id = buff.readUInt16BE(c);                    c += 2;
+    }
+    len = buff.readInt32BE(c);                              c += 4;
+    chunk.data = new Buffer(len);
+    buff.copy(chunk.data, 0, c, c + len);                   c += len;
 
-      replayData.chunks[chunk.id] = chunk;
+    replayData.chunks[chunk.id] = chunk;
   }
 
   // Calculate the last chunk id
@@ -272,4 +270,9 @@ export load = (file, cb) => {
   }
 
   cb({ success: true, error: null }, replayMetadata, replayData);
+};
+
+module.exports = {
+  save: save,
+  load: load
 };
