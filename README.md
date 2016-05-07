@@ -5,7 +5,7 @@ A module to read and write .aof files. The aof file format is used by the websit
 ## Install
 
 ```
-npm install --save https://github.com/AnalyzeOrFeed/aof-file-parser
+npm install --save aof-file-parser
 ```
 
 ## Example
