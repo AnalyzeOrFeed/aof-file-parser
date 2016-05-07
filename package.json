@@ -1,6 +1,6 @@
 {
   "name": "aof-file-parser",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A module to read and write .aof files. The aof file format is used by the website aof.gg (AnalyzeOrFeed) to store League of Legends replays and some additional metadata.",
   "main": "aof-file-parser.js",
   "keywords": [
