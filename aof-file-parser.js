@@ -96,8 +96,8 @@ let save = (game, filename, cb) => {
     tempBuff.writeUInt8(p.leagueId, d);	                  d += 1;
     tempBuff.writeUInt8(p.leagueRank, d);                 d += 1;
     tempBuff.writeInt32BE(p.championId, d);               d += 4;
-    tempBuff.writeInt32BE(p.dId, d);                      d += 4;
-    tempBuff.writeInt32BE(p.fId, d);                      d += 4;
+    tempBuff.writeInt32BE(p.spell1Id, d);                 d += 4;
+    tempBuff.writeInt32BE(p.spell2Id, d);                 d += 4;
 
     buff = Buffer.concat([ buff, tempBuff ]);             c += tempBuff.length;
   }
@@ -156,11 +156,11 @@ let load = (file, cb) => {
   let c = 0;
 
   // Read file version
-  replayMetadata.version = buff.readUInt8(c);                 c += 1;
-  if (replayMetadata.version < 8) {
+  replayMetadata.fileVersion = buff.readUInt8(c);                 c += 1;
+  if (replayMetadata.fileVersion < 8) {
     cb({ success: false, error: new Error('The file is using an old data format') });
     return;
-  } else if (replayMetadata.version == 9) {
+  } else if (replayMetadata.fileVersion == 9) {
     cb({ success: false, error: new Error('This file is using a corrupted data format. Please report this to an administrator of aof.gg') });
     return;
   }
@@ -169,7 +169,7 @@ let load = (file, cb) => {
   replayMetadata.regionId = buff.readUInt8(c);                c += 1;
 
   // Read the game id
-  if (replayMetadata.version == 8) {
+  if (replayMetadata.fileVersion == 8) {
       replayMetadata.gameId = buff.readUInt32BE(c);           c += 4;
   } else {
       let high = buff.readUInt32BE(c);                        c += 4;
@@ -203,24 +203,24 @@ let load = (file, cb) => {
     p.leagueId = buff.readUInt8(c);                         c += 1;
     p.leagueRank = buff.readUInt8(c);                       c += 1;
     p.championId = buff.readInt32BE(c);                     c += 4;
-    p.dId = buff.readInt32BE(c);                            c += 4;
-    p.fId = buff.readInt32BE(c);                            c += 4;
+    p.spell1Id = buff.readInt32BE(c);                       c += 4;
+    p.spell2Id = buff.readInt32BE(c);                       c += 4;
 
     replayMetadata.players.push(p);
   }
 
   // Read the keyframes
   replayData.keyframes = [];
-  if (replayMetadata.version < 11) {
+  if (replayMetadata.fileVersion < 11) {
     num = buff.readUInt8(c);                                c += 1;
   } else {
     num = buff.readUInt16BE(c);                             c += 2;
   }
   for (let i = 0; i < num; i++) {
     let keyframe = {};
-    if (replayMetadata.version < 11) {
+    if (replayMetadata.fileVersion < 11) {
         keyframe.id = buff.readUInt8(c);                    c += 1;
-    } else if (replayMetadata.version == 11) {
+    } else if (replayMetadata.fileVersion == 11) {
         keyframe.id = i + 1;                                c += 1;
     } else {
         keyframe.id = buff.readUInt16BE(c);                 c += 2;
@@ -240,16 +240,16 @@ let load = (file, cb) => {
 
   // Read the chunks
   replayData.chunks = [];
-  if (replayMetadata.version < 11) {
+  if (replayMetadata.fileVersion < 11) {
     num = buff.readUInt8(c);                                c += 1;
   } else {
     num = buff.readUInt16BE(c);                             c += 2;
   }
   for (let i = 0; i < num; i++) {
     let chunk = {};
-    if (replayMetadata.version < 11) {
+    if (replayMetadata.fileVersion < 11) {
         chunk.id = buff.readUInt8(c);                       c += 1;
-    } else if (replayMetadata.version == 11) {
+    } else if (replayMetadata.fileVersion == 11) {
         chunk.id = i + 1;                                   c += 1;
     } else {
         chunk.id = buff.readUInt16BE(c);                    c += 2;
