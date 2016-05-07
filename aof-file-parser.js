@@ -85,13 +85,13 @@ let save = (game, filename, cb) => {
 
   for (let i = 0; i < game.players.length; i++) {
     let p = game.players[i];
-    let len = Buffer.byteLength(p.summonerName, 'utf8');
+    let len = Buffer.byteLength(p.name, 'utf8');
     let tempBuff = new Buffer(20 + len);
     let d = 0;
 
     tempBuff.writeInt32BE(p.id, d);                       d += 4;
     tempBuff.writeUInt8(len, d);                          d += 1;
-    tempBuff.write(p.summonerName, d, len, 'utf8');       d += len;
+    tempBuff.write(p.name, d, len, 'utf8');               d += len;
     tempBuff.writeUInt8(p.teamNr, d);                     d += 1;
     tempBuff.writeUInt8(p.leagueId, d);	                  d += 1;
     tempBuff.writeUInt8(p.leagueRank, d);                 d += 1;
@@ -197,7 +197,7 @@ let load = (file, cb) => {
 
     p.id = buff.readInt32BE(c);                             c += 4;
     len = buff.readUInt8(c);                                c += 1;
-    p.summonerName = buff.toString('utf8', c, c + len);     c += len;
+    p.name = buff.toString('utf8', c, c + len);             c += len;
 
     p.teamNr = buff.readUInt8(c);                           c += 1;
     p.leagueId = buff.readUInt8(c);                         c += 1;
