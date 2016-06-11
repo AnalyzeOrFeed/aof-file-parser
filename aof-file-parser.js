@@ -146,11 +146,16 @@ let load = (file, cb) => {
   let replayData = {};
 
   let buff;
-  try {
-    buff = fs.readFileSync(file);
-  } catch (e) {
-    cb({ success: false, error: e }); // Will abort if there is any error reading the file.
-    return;
+
+  if (file instanceof Buffer) {
+    buff = file;
+  } else {
+    try {
+      buff = fs.readFileSync(file);
+    } catch (e) {
+      cb({ success: false, error: e }); // Will abort if there is any error reading the file.
+      return;
+    }
   }
 
   let c = 0;
